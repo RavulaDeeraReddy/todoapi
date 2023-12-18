@@ -1,5 +1,5 @@
 import express from 'express';
-import tasks from './tasks.js';
+import Task from './tasksModel.js';
 
 const router = express.Router();
 
@@ -16,33 +16,32 @@ function validateTask(req, res, next) {
     next();
 }
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
+    const tasks = await Task.find({});
     res.json(tasks);
 });
 
-router.post('/', validateTask, (req, res) => {
-    const task = { id: tasks.length + 1, ...req.body };
-    tasks.push(task);
+router.post('/', validateTask, async (req, res) => {
+    const task = new Task({ ...req.body });
+    await task.save();
     res.status(201).json(task);
 });
 
-router.get('/:id', (req, res) => {
-    const task = tasks.find(t => t.id === parseInt(req.params.id));
+router.get('/:id', async (req, res) => {
+    const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).send('Task not found.');
     res.json(task);
 });
 
-router.put('/:id', validateTask, (req, res) => {
-    const task = tasks.find(t => t.id === parseInt(req.params.id));
+router.put('/:id', validateTask, async (req, res) => {
+    const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!task) return res.status(404).send('Task not found.');
-    Object.assign(task, req.body);
     res.json(task);
 });
 
-router.delete('/:id', (req, res) => {
-    const taskIndex = tasks.findIndex(t => t.id === parseInt(req.params.id));
-    if (taskIndex === -1) return res.status(404).send('Task not found.');
-    tasks.splice(taskIndex, 1);
+router.delete('/:id', async (req, res) => {
+    const task = await Task.findByIdAndDelete(req.params.id);
+    if (!task) return res.status(404).send('Task not found.');
     res.status(202).send('Task deleted.');
 });
 
